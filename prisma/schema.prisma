@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  TENANT
+}
+
+enum AuthProvider {
+  CREDENTIALS
+  GOOGLE
+  APPLE
+}
+
+enum RentalType {
+  SHORT_TERM
+  LONG_TERM
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FurnishingStatus {
+  FURNISHED
+  UNFURNISHED
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+enum InquiryType {
+  PROPERTY_CONTACT
+  BOOKING_REQUEST
+}
+
+enum PropertyEventType {
+  PROPERTY_OPENED
+  CONTACT_CLICKED
+  BOOKING_CLICKED
+}
+
+model User {
+  id              String               @id @default(cuid())
+  email           String               @unique
+  emailVerifiedAt DateTime?
+  firstName       String
+  lastName        String
+  phone           String?
+  imageUrl        String?
+  passwordHash    String?
+  role            UserRole             @default(TENANT)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  ownedProperties Property[]           @relation("PropertyOwner")
+  inquiries       Inquiry[]
+  resetTokens     PasswordResetToken[]
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Property {
+  id          String            @id @default(cuid())
+  ownerId     String
+  slug        String            @unique
+  title       String
+  summary     String?
+  description String
+  location    String
+  mapQuery    String?
+  transportDetails String?
+  city        String
+  country     String
+  bedrooms    Int
+  bathrooms   Int
+  squareMeters Int
+  maxGuests   Int?
+  priceCents  Int
+  currency    String            @default("EUR")
+  rentalType  RentalType
+  furnishingStatus FurnishingStatus @default(FURNISHED)
+  status      PropertyStatus    @default(DRAFT)
+  available   Boolean           @default(true)
+  publishedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  owner       User              @relation("PropertyOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  images      PropertyImage[]
+  amenities   PropertyAmenity[]
+  inquiries   Inquiry[]
+  events      PropertyEvent[]
+
+  @@index([ownerId])
+  @@index([rentalType, status, city])
+  @@index([available, status])
+}
+
+model PropertyEvent {
+  id         String            @id @default(cuid())
+  propertyId String?
+  eventType  PropertyEventType
+  page       String?
+  createdAt  DateTime          @default(now())
+  property   Property?         @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+}
+
+model Amenity {
+  id         String            @id @default(cuid())
+  name       String            @unique
+  createdAt  DateTime          @default(now())
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  amenityId  String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@index([amenityId])
+}
+
+model Inquiry {
+  id         String        @id @default(cuid())
+  propertyId String
+  userId     String?
+  name       String
+  email      String
+  phone      String?
+  message    String
+  type       InquiryType   @default(PROPERTY_CONTACT)
+  requestedStartDate DateTime?
+  requestedEndDate   DateTime?
+  status     InquiryStatus @default(NEW)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  property   Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId, status])
+  @@index([userId])
+}

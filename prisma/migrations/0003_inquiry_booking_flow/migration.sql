@@ -1,0 +1,8 @@
+-- CreateEnum
+CREATE TYPE "InquiryType" AS ENUM ('PROPERTY_CONTACT', 'BOOKING_REQUEST');
+
+-- AlterTable
+ALTER TABLE "Inquiry"
+ADD COLUMN "type" "InquiryType" NOT NULL DEFAULT 'PROPERTY_CONTACT',
+ADD COLUMN "requestedStartDate" TIMESTAMP(3),
+ADD COLUMN "requestedEndDate" TIMESTAMP(3);
