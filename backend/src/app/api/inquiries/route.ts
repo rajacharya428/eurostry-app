@@ -45,17 +45,19 @@ export async function POST(request: NextRequest) {
   const auth = await getAuthenticatedUser(request)
   const { propertyId, propertySlug, requestedEndDate, requestedStartDate, ...rest } = parsed.data
 
-  const property = propertyId
+  const propertyById = propertyId
     ? await prisma.property.findUnique({
         where: { id: propertyId },
         include: { owner: true },
       })
-    : propertySlug
-      ? await prisma.property.findUnique({
-          where: { slug: propertySlug },
-          include: { owner: true },
-        })
-      : null
+    : null
+
+  const property = propertyById ?? (propertySlug
+    ? await prisma.property.findUnique({
+        where: { slug: propertySlug },
+        include: { owner: true },
+      })
+    : null)
 
   if (!property) {
     return errorResponse(404, 'Property not found')
