@@ -33,6 +33,10 @@ type PropertyDetails = {
   rentalType: 'SHORT_TERM' | 'LONG_TERM'
 }
 
+type ApiErrorResponse = {
+  error?: string
+}
+
 const contactReasons = [
   'Ask about apartment availability',
   'Request owner consultation',
@@ -70,6 +74,7 @@ export default function ContactPage() {
   })
   const [status, setStatus] = useState<'success' | 'error' | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null)
 
   const propertyId = searchParams.get('propertyId') ?? ''
@@ -148,6 +153,7 @@ export default function ContactPage() {
     event.preventDefault()
     setSubmitting(true)
     setStatus(null)
+    setSubmitError(null)
 
     try {
       const endpoint = hasPropertyInquiry ? `${API_BASE_URL}/api/inquiries` : `${API_BASE_URL}/api/contact`
@@ -178,7 +184,8 @@ export default function ContactPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const responseError = await readJsonResponse<ApiErrorResponse>(response)
+        throw new Error(responseError?.error ?? 'Failed to send message')
       }
 
       setForm({
@@ -194,7 +201,8 @@ export default function ContactPage() {
         requestedEndDate: '',
       })
       setStatus('success')
-    } catch {
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Failed to send message')
       setStatus('error')
     } finally {
       setSubmitting(false)
@@ -322,7 +330,7 @@ export default function ContactPage() {
                   ) : null}
                   {status === 'error' ? (
                     <div className="mt-4 rounded-xl bg-red-50 p-4 text-center text-red-700">
-                      Failed to send your message. Check that the backend is running.
+                      {submitError ?? 'Failed to send your message. Check that the backend is running.'}
                     </div>
                   ) : null}
                 </form>
@@ -460,7 +468,7 @@ export default function ContactPage() {
                 ) : null}
                 {status === 'error' ? (
                   <div className="mt-4 rounded-xl bg-red-50 p-4 text-center text-red-700">
-                    Failed to send your message. Check that the backend is running.
+                    {submitError ?? 'Failed to send your message. Check that the backend is running.'}
                   </div>
                 ) : null}
               </form>

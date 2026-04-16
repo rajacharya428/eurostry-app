@@ -65,7 +65,7 @@ export const propertyCreateSchema = z.object({
 })
 
 export const inquiryCreateSchema = z.object({
-  propertyId: z.string().cuid().optional(),
+  propertyId: z.string().min(1).optional(),
   propertySlug: z.string().optional(),
   name: z.string().min(1),
   email: z.email(),
@@ -84,7 +84,7 @@ export const contactMessageSchema = z.object({
 })
 
 export const propertyEventCreateSchema = z.object({
-  propertyId: z.string().cuid().optional(),
+  propertyId: z.string().min(1).optional(),
   propertySlug: z.string().optional(),
   eventType: z.enum(PropertyEventType),
   page: z.string().optional(),
