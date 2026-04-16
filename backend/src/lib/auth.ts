@@ -9,12 +9,14 @@ const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 function getCookieSettings(expires: Date) {
   const secure = process.env.NODE_ENV === 'production'
-  const sameSite = secure ? 'strict' : 'lax'
+  // Production currently uses the Vercel backend URL from a separate frontend origin,
+  // so the session cookie must be sent in cross-site requests.
+  const sameSite = secure ? 'none' : 'lax'
 
   return {
     name: process.env.AUTH_COOKIE_NAME ?? SESSION_COOKIE,
     httpOnly: true,
-    sameSite: sameSite as 'lax' | 'strict',
+    sameSite: sameSite as 'lax' | 'none',
     secure,
     path: '/',
     domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
